@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coffee Chat Tracker</title>
+<style>
+  :root {
+    --bg: #f7f5f2; --surface: #ffffff; --surface-2: #f1ede8; --text: #2a2522; --muted: #7a6f68;
+    --border: #e3ddd6; --accent: #8a5a3c; --accent-text: #ffffff;
+    --great: #2f7d4f; --good: #4f7fbf; --okay: #b8892b; --poor: #b5483f;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1816; --surface: #252120; --surface-2: #2f2a27; --text: #efe9e4; --muted: #a89c93;
+      --border: #3a3431; --accent: #c98d63; --accent-text: #1b1816;
+      --great: #5cbf85; --good: #7aa7e6; --okay: #e0b453; --poor: #e07a70;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1816; --surface: #252120; --surface-2: #2f2a27; --text: #efe9e4; --muted: #a89c93;
+    --border: #3a3431; --accent: #c98d63; --accent-text: #1b1816;
+    --great: #5cbf85; --good: #7aa7e6; --okay: #e0b453; --poor: #e07a70;
+    --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  h1 { font-size: 24px; margin: 0; }
+  h1 span { color: var(--muted); font-weight: 400; font-size: 15px; display: block; }
+  button, .btn { font: inherit; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  .primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  .danger { color: var(--poor); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; box-shadow: var(--shadow); }
+  .stat b { font-size: 24px; display: block; font-variant-numeric: tabular-nums; }
+  .stat small { color: var(--muted); }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  input, select, textarea { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; width: 100%; }
+  textarea { resize: vertical; min-height: 90px; }
+  .filters input { flex: 1 1 220px; width: auto; }
+  .filters select { flex: 0 1 170px; width: auto; }
+
+  .list { display: grid; gap: 10px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+  .card-head { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 14px 16px; cursor: pointer; }
+  .name { font-weight: 600; font-size: 16px; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start; }
+  .badge { font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+  .r-Great { color: var(--great); } .r-Good { color: var(--good); } .r-Okay { color: var(--okay); } .r-Poor { color: var(--poor); }
+  .due { color: var(--poor); } .done { color: var(--great); } .tag { color: var(--muted); }
+  .card-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); background: var(--surface-2); }
+  .card.open .card-body { display: block; }
+  .card-body h4 { margin: 14px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .card-body p { margin: 0; white-space: pre-wrap; }
+  .card-body a { color: var(--accent); }
+  .empty { text-align: center; color: var(--muted); padding: 48px 16px; border: 1px dashed var(--border); border-radius: 12px; }
+
+  dialog { border: none; border-radius: 14px; padding: 0; width: min(720px, calc(100vw - 32px));
+    background: var(--surface); color: var(--text); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  form { padding: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .full { grid-column: 1 / -1; }
+  label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  label.check { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 14px; }
+  label.check input { width: auto; }
+  .form-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } .card-head { grid-template-columns: 1fr; } .badges { justify-content: flex-start; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>☕ Coffee Chat Tracker <span>Every conversation, its notes, and what comes next.</span></h1>
+    <div class="row">
+      <button id="exportCsv">Export CSV</button>
+      <button id="exportJson">Backup</button>
+      <label class="btn" style="display:inline-block">Restore<input id="importJson" type="file" accept="application/json" hidden></label>
+      <button class="primary" id="addBtn">+ New chat</button>
+    </div>
+  </header>
+
+  <section class="stats" id="stats"></section>
+
+  <section class="filters">
+    <input id="q" type="search" placeholder="Search name, company, notes, tags…">
+    <select id="fRating"><option value="">All ratings</option></select>
+    <select id="fStatus">
+      <option value="">All statuses</option>
+      <option value="upcoming">Upcoming</option>
+      <option value="followup">Follow-up pending</option>
+      <option value="overdue">Follow-up overdue</option>
+      <option value="thanks">Thank-you not sent</option>
+    </select>
+    <select id="sort">
+      <option value="date-desc">Newest first</option>
+      <option value="date-asc">Oldest first</option>
+      <option value="rating">Best rated</option>
+      <option value="company">Company A–Z</option>
+    </select>
+  </section>
+
+  <section class="list" id="list"></section>
+</div>
+
+<dialog id="dlg">
+  <form id="form" method="dialog">
+    <h2 id="formTitle" style="margin-top:0">New coffee chat</h2>
+    <div class="grid">
+      <label>Name *<input name="name" required></label>
+      <label>Company *<input name="company" required></label>
+      <label>Role / title<input name="role" placeholder="e.g. VP, Investment Banking"></label>
+      <label>Date<input name="date" type="date"></label>
+      <label>How did it go?
+        <select name="rating"></select>
+      </label>
+      <label>Format
+        <select name="format"><option>Video call</option><option>Phone</option><option>In person</option></select>
+      </label>
+      <label>How we connected<input name="source" placeholder="Alumni, LinkedIn, referral from…"></label>
+      <label>Email<input name="email" type="email"></label>
+      <label class="full">LinkedIn URL<input name="linkedin" type="url" placeholder="https://linkedin.com/in/…"></label>
+      <label class="full">Call notes<textarea name="notes" rows="6" placeholder="What did you talk about?"></textarea></label>
+      <label class="full">Key takeaways / advice<textarea name="takeaways" rows="3"></textarea></label>
+      <label class="full">Referrals / people they suggested<input name="referrals" placeholder="Names to reach out to next"></label>
+      <label>Next step<input name="nextStep" placeholder="Send resume, follow up in 2 weeks…"></label>
+      <label>Follow-up by<input name="followUpDate" type="date"></label>
+      <label class="check"><input type="checkbox" name="thankYouSent"> Thank-you note sent</label>
+      <label class="check"><input type="checkbox" name="followUpDone"> Follow-up done</label>
+      <label class="full">Tags (comma separated)<input name="tags" placeholder="banking, alumni, NYC"></label>
+    </div>
+    <div class="form-foot">
+      <button type="button" class="danger" id="delBtn">Delete</button>
+      <div class="row">
+        <button type="button" id="cancelBtn">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const KEY = "coffeeChats.v1";
+const RATINGS = ["Great", "Good", "Okay", "Poor"];
+const RATING_LABEL = { Great: "🔥 Great — strong connection", Good: "👍 Good", Okay: "😐 Okay", Poor: "👎 Poor" };
+const $ = s => document.querySelector(s);
+const today = () => new Date().toISOString().slice(0, 10);
+
+let chats = load();
+let editingId = null;
+const openIds = new Set();
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(chats)); } catch {}
+}
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function fmtDate(d) {
+  return d ? new Date(d + "T00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "No date";
+}
+function tagsOf(c) { return (c.tags || "").split(",").map(t => t.trim()).filter(Boolean); }
+function isOverdue(c) { return c.followUpDate && !c.followUpDone && c.followUpDate < today(); }
+function isPendingFollowUp(c) { return (c.nextStep || c.followUpDate) && !c.followUpDone; }
+
+// Populate rating dropdowns
+for (const r of RATINGS) {
+  $("#fRating").insertAdjacentHTML("beforeend", `<option value="${r}">${r}</option>`);
+  $("#form").rating.insertAdjacentHTML("beforeend", `<option value="${r}">${RATING_LABEL[r]}</option>`);
+}
+$("#form").rating.insertAdjacentHTML("afterbegin", `<option value="">Not rated yet</option>`);
+
+function renderStats() {
+  const now = new Date();
+  const thisMonth = chats.filter(c => c.date && new Date(c.date + "T00:00").getMonth() === now.getMonth()
+    && new Date(c.date + "T00:00").getFullYear() === now.getFullYear()).length;
+  const companies = new Set(chats.map(c => c.company.trim().toLowerCase())).size;
+  const pending = chats.filter(isPendingFollowUp).length;
+  const overdue = chats.filter(isOverdue).length;
+  const great = chats.filter(c => c.rating === "Great").length;
+  $("#stats").innerHTML = [
+    [chats.length, "Total chats"], [thisMonth, "This month"], [companies, "Companies"],
+    [great, "Great chats"], [pending, `Follow-ups pending${overdue ? ` · ${overdue} overdue` : ""}`],
+  ].map(([n, l]) => `<div class="stat"><b>${n}</b><small>${l}</small></div>`).join("");
+}
+
+function filtered() {
+  const q = $("#q").value.trim().toLowerCase();
+  const fr = $("#fRating").value, fs = $("#fStatus").value, sort = $("#sort").value;
+  let out = chats.filter(c => {
+    if (fr && c.rating !== fr) return false;
+    if (fs === "upcoming" && !(c.date && c.date > today())) return false;
+    if (fs === "followup" && !isPendingFollowUp(c)) return false;
+    if (fs === "overdue" && !isOverdue(c)) return false;
+    if (fs === "thanks" && (c.thankYouSent || (c.date && c.date > today()))) return false;
+    if (q) {
+      const hay = [c.name, c.company, c.role, c.notes, c.takeaways, c.tags, c.referrals, c.source].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const rank = r => r ? RATINGS.indexOf(r) : 99;
+  out.sort({
+    "date-desc": (a, b) => (b.date || "").localeCompare(a.date || ""),
+    "date-asc": (a, b) => (a.date || "").localeCompare(b.date || ""),
+    "rating": (a, b) => rank(a.rating) - rank(b.rating),
+    "company": (a, b) => a.company.localeCompare(b.company),
+  }[sort]);
+  return out;
+}
+
+function renderList() {
+  const rows = filtered();
+  if (!chats.length) {
+    $("#list").innerHTML = `<div class="empty">No coffee chats yet. Click <b>+ New chat</b> to log your first one.</div>`;
+    return;
+  }
+  if (!rows.length) { $("#list").innerHTML = `<div class="empty">No chats match these filters.</div>`; return; }
+  $("#list").innerHTML = rows.map(c => {
+    const badges = [
+      c.rating && `<span class="badge r-${c.rating}">${c.rating}</span>`,
+      c.date && c.date > today() && `<span class="badge good r-Good">Upcoming</span>`,
+      isOverdue(c) && `<span class="badge due">Follow-up overdue</span>`,
+      !isOverdue(c) && isPendingFollowUp(c) && `<span class="badge r-Okay">Follow-up${c.followUpDate ? " " + fmtDate(c.followUpDate) : ""}</span>`,
+      c.followUpDone && `<span class="badge done">Followed up</span>`,
+      !c.thankYouSent && !(c.date && c.date > today()) && `<span class="badge tag">No thank-you yet</span>`,
+      ...tagsOf(c).map(t => `<span class="badge tag">#${esc(t)}</span>`),
+    ].filter(Boolean).join("");
+    const section = (title, body) => body ? `<h4>${title}</h4><p>${body}</p>` : "";
+    const contact = [
+      c.email && `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`,
+      c.linkedin && /^https?:\/\//i.test(c.linkedin) && `<a href="${esc(c.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>`,
+    ].filter(Boolean).join(" · ");
+    return `<article class="card ${openIds.has(c.id) ? "open" : ""}" data-id="${c.id}">
+      <div class="card-head" data-toggle>
+        <div>
+          <div class="name">${esc(c.name)}</div>
+          <div class="meta">${esc(c.role ? c.role + " · " : "")}${esc(c.company)} · ${fmtDate(c.date)} · ${esc(c.format || "")}</div>
+        </div>
+        <div class="badges">${badges}</div>
+      </div>
+      <div class="card-body">
+        ${section("Notes", esc(c.notes) || "<i>No notes yet.</i>")}
+        ${section("Key takeaways", esc(c.takeaways))}
+        ${section("Referrals", esc(c.referrals))}
+        ${section("Next step", esc(c.nextStep))}
+        ${section("How we connected", esc(c.source))}
+        ${section("Contact", contact)}
+        <div class="row" style="margin-top:14px">
+          <button data-edit>Edit</button>
+          <button data-quick="thankYouSent">${c.thankYouSent ? "✓ Thank-you sent" : "Mark thank-you sent"}</button>
+          <button data-quick="followUpDone">${c.followUpDone ? "✓ Followed up" : "Mark follow-up done"}</button>
+          <button data-copy>Copy notes</button>
+        </div>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+function render() { renderStats(); renderList(); }
+
+$("#list").addEventListener("click", e => {
+  const card = e.target.closest(".card"); if (!card) return;
+  const c = chats.find(x => x.id === card.dataset.id);
+  if (e.target.closest("[data-toggle]")) {
+    openIds.has(c.id) ? openIds.delete(c.id) : openIds.add(c.id);
+    card.classList.toggle("open");
+  } else if (e.target.closest("[data-edit]")) openForm(c);
+  else if (e.target.closest("[data-quick]")) {
+    const k = e.target.closest("[data-quick]").dataset.quick;
+    c[k] = !c[k]; save(); render();
+  } else if (e.target.closest("[data-copy]")) {
+    const text = `${c.name} — ${c.company} (${fmtDate(c.date)})\n\n${c.notes || ""}${c.takeaways ? "\n\nTakeaways:\n" + c.takeaways : ""}`;
+    navigator.clipboard?.writeText(text).then(() => {
+      const b = e.target.closest("[data-copy]"); b.textContent = "Copied!"; setTimeout(() => b.textContent = "Copy notes", 1200);
+    });
+  }
+});
+
+const form = $("#form");
+function openForm(c) {
+  editingId = c?.id || null;
+  form.reset();
+  $("#formTitle").textContent = c ? `Edit chat with ${c.name}` : "New coffee chat";
+  $("#delBtn").style.visibility = c ? "visible" : "hidden";
+  const data = c || { date: today(), format: "Video call" };
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    if (el.type === "checkbox") el.checked = !!data[el.name];
+    else el.value = data[el.name] ?? "";
+  }
+  $("#dlg").showModal();
+}
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  const data = {};
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    data[el.name] = el.type === "checkbox" ? el.checked : el.value.trim();
+  }
+  if (editingId) Object.assign(chats.find(c => c.id === editingId), data);
+  else { const id = crypto.randomUUID(); chats.push({ id, createdAt: Date.now(), ...data }); openIds.add(id); }
+  save(); render(); $("#dlg").close();
+});
+$("#cancelBtn").onclick = () => $("#dlg").close();
+$("#delBtn").onclick = () => {
+  const c = chats.find(x => x.id === editingId);
+  if (c && confirm(`Delete your chat with ${c.name}?`)) {
+    chats = chats.filter(x => x.id !== editingId); save(); render(); $("#dlg").close();
+  }
+};
+$("#addBtn").onclick = () => openForm(null);
+for (const id of ["#q", "#fRating", "#fStatus", "#sort"]) $(id).addEventListener("input", renderList);
+
+function download(name, text, type) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+$("#exportJson").onclick = () => download(`coffee-chats-${today()}.json`, JSON.stringify(chats, null, 2), "application/json");
+$("#exportCsv").onclick = () => {
+  const cols = ["date", "name", "company", "role", "rating", "format", "source", "email", "linkedin", "notes",
+    "takeaways", "referrals", "nextStep", "followUpDate", "followUpDone", "thankYouSent", "tags"];
+  const cell = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  download(`coffee-chats-${today()}.csv`, [cols.join(","), ...chats.map(c => cols.map(k => cell(c[k])).join(","))].join("\n"), "text/csv");
+};
+$("#importJson").onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!Array.isArray(data)) throw new Error();
+    if (confirm(`Restore ${data.length} chats? This replaces what's currently here.`)) { chats = data; save(); render(); }
+  } catch { alert("That file doesn't look like a Coffee Chat Tracker backup."); }
+  e.target.value = "";
+};
+
+render();
+</script>
+</body>
+</html>
