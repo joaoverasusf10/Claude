@@ -1,0 +1,155 @@
+
+function filtered() {
+  const q = $("#q").value.trim().toLowerCase();
+  const fr = $("#fRating").value, fs = $("#fStatus").value, sort = $("#sort").value;
+  let out = chats.filter(c => {
+    if (fr && c.rating !== fr) return false;
+    if (fs === "upcoming" && !(c.date && c.date > today())) return false;
+    if (fs === "followup" && !isPendingFollowUp(c)) return false;
+    if (fs === "overdue" && !isOverdue(c)) return false;
+    if (fs === "thanks" && (c.thankYouSent || (c.date && c.date > today()))) return false;
+    if (q) {
+      const hay = [c.name, c.company, c.role, c.notes, c.takeaways, c.tags, c.referrals, c.source].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const rank = r => r ? RATINGS.indexOf(r) : 99;
+  out.sort({
+    "date-desc": (a, b) => (b.date || "").localeCompare(a.date || ""),
+    "date-asc": (a, b) => (a.date || "").localeCompare(b.date || ""),
+    "rating": (a, b) => rank(a.rating) - rank(b.rating),
+    "company": (a, b) => a.company.localeCompare(b.company),
+  }[sort]);
+  return out;
+}
+
+function renderList() {
+  const rows = filtered();
+  if (!chats.length) {
+    $("#list").innerHTML = `<div class="empty">No coffee chats yet. Click <b>+ New chat</b> to log your first one.</div>`;
+    return;
+  }
+  if (!rows.length) { $("#list").innerHTML = `<div class="empty">No chats match these filters.</div>`; return; }
+  $("#list").innerHTML = rows.map(c => {
+    const badges = [
+      c.rating && `<span class="badge r-${c.rating}">${c.rating}</span>`,
+      c.date && c.date > today() && `<span class="badge good r-Good">Upcoming</span>`,
+      isOverdue(c) && `<span class="badge due">Follow-up overdue</span>`,
+      !isOverdue(c) && isPendingFollowUp(c) && `<span class="badge r-Okay">Follow-up${c.followUpDate ? " " + fmtDate(c.followUpDate) : ""}</span>`,
+      c.followUpDone && `<span class="badge done">Followed up</span>`,
+      !c.thankYouSent && !(c.date && c.date > today()) && `<span class="badge tag">No thank-you yet</span>`,
+      ...tagsOf(c).map(t => `<span class="badge tag">#${esc(t)}</span>`),
+    ].filter(Boolean).join("");
+    const section = (title, body) => body ? `<h4>${title}</h4><p>${body}</p>` : "";
+    const contact = [
+      c.email && `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`,
+      c.linkedin && /^https?:\/\//i.test(c.linkedin) && `<a href="${esc(c.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>`,
+    ].filter(Boolean).join(" · ");
+    return `<article class="card ${openIds.has(c.id) ? "open" : ""}" data-id="${c.id}">
+      <div class="card-head" data-toggle>
+        <div>
+          <div class="name">${esc(c.name)}</div>
+          <div class="meta">${esc(c.role ? c.role + " · " : "")}${esc(c.company)} · ${fmtDate(c.date)} · ${esc(c.format || "")}</div>
+        </div>
+        <div class="badges">${badges}</div>
+      </div>
+      <div class="card-body">
+        ${section("Notes", esc(c.notes) || "<i>No notes yet.</i>")}
+        ${section("Key takeaways", esc(c.takeaways))}
+        ${section("Referrals", esc(c.referrals))}
+        ${section("Next step", esc(c.nextStep))}
+        ${section("How we connected", esc(c.source))}
+        ${section("Contact", contact)}
+        <div class="row" style="margin-top:14px">
+          <button data-edit>Edit</button>
+          <button data-quick="thankYouSent">${c.thankYouSent ? "✓ Thank-you sent" : "Mark thank-you sent"}</button>
+          <button data-quick="followUpDone">${c.followUpDone ? "✓ Followed up" : "Mark follow-up done"}</button>
+          <button data-copy>Copy notes</button>
+        </div>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+function render() { renderStats(); renderList(); }
+
+$("#list").addEventListener("click", e => {
+  const card = e.target.closest(".card"); if (!card) return;
+  const c = chats.find(x => x.id === card.dataset.id);
+  if (e.target.closest("[data-toggle]")) {
+    openIds.has(c.id) ? openIds.delete(c.id) : openIds.add(c.id);
+    card.classList.toggle("open");
+  } else if (e.target.closest("[data-edit]")) openForm(c);
+  else if (e.target.closest("[data-quick]")) {
+    const k = e.target.closest("[data-quick]").dataset.quick;
+    c[k] = !c[k]; save(); render();
+  } else if (e.target.closest("[data-copy]")) {
+    const text = `${c.name} — ${c.company} (${fmtDate(c.date)})\n\n${c.notes || ""}${c.takeaways ? "\n\nTakeaways:\n" + c.takeaways : ""}`;
+    navigator.clipboard?.writeText(text).then(() => {
+      const b = e.target.closest("[data-copy]"); b.textContent = "Copied!"; setTimeout(() => b.textContent = "Copy notes", 1200);
+    });
+  }
+});
+
+const form = $("#form");
+function openForm(c) {
+  editingId = c?.id || null;
+  form.reset();
+  $("#formTitle").textContent = c ? `Edit chat with ${c.name}` : "New coffee chat";
+  $("#delBtn").style.visibility = c ? "visible" : "hidden";
+  const data = c || { date: today(), format: "Video call" };
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    if (el.type === "checkbox") el.checked = !!data[el.name];
+    else el.value = data[el.name] ?? "";
+  }
+  $("#dlg").showModal();
+}
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  const data = {};
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    data[el.name] = el.type === "checkbox" ? el.checked : el.value.trim();
+  }
+  if (editingId) Object.assign(chats.find(c => c.id === editingId), data);
+  else { const id = crypto.randomUUID(); chats.push({ id, createdAt: Date.now(), ...data }); openIds.add(id); }
+  save(); render(); $("#dlg").close();
+});
+$("#cancelBtn").onclick = () => $("#dlg").close();
+$("#delBtn").onclick = () => {
+  const c = chats.find(x => x.id === editingId);
+  if (c && confirm(`Delete your chat with ${c.name}?`)) {
+    chats = chats.filter(x => x.id !== editingId); save(); render(); $("#dlg").close();
+  }
+};
+$("#addBtn").onclick = () => openForm(null);
+for (const id of ["#q", "#fRating", "#fStatus", "#sort"]) $(id).addEventListener("input", renderList);
+
+function download(name, text, type) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+$("#exportJson").onclick = () => download(`coffee-chats-${today()}.json`, JSON.stringify(chats, null, 2), "application/json");
+$("#exportCsv").onclick = () => {
+  const cols = ["date", "name", "company", "role", "rating", "format", "source", "email", "linkedin", "notes",
+    "takeaways", "referrals", "nextStep", "followUpDate", "followUpDone", "thankYouSent", "tags"];
+  const cell = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  download(`coffee-chats-${today()}.csv`, [cols.join(","), ...chats.map(c => cols.map(k => cell(c[k])).join(","))].join("\n"), "text/csv");
+};
+$("#importJson").onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!Array.isArray(data)) throw new Error();
+    if (confirm(`Restore ${data.length} chats? This replaces what's currently here.`)) { chats = data; save(); render(); }
+  } catch { alert("That file doesn't look like a Coffee Chat Tracker backup."); }
+  e.target.value = "";
+};
+
+render();
+</script>
+</body>
+</html>
