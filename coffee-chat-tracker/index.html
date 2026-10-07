@@ -1,110 +1,151 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Coffee Chat Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
 <style>
+  /* Layout: one working column — calendar inbox on top, then stats, filters, and an expandable log of chats. */
   :root {
-    --bg: #f7f5f2; --surface: #ffffff; --surface-2: #f1ede8; --text: #2a2522; --muted: #7a6f68;
-    --border: #e3ddd6; --accent: #8a5a3c; --accent-text: #ffffff;
-    --great: #2f7d4f; --good: #4f7fbf; --okay: #b8892b; --poor: #b5483f;
-    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+    --bg: #f3f5f2; --surface: #ffffff; --sunk: #e9ede8; --ink: #1d2a24; --muted: #5f6e66; --line: #d5ddd7;
+    --accent: #1f6b52; --accent-ink: #ffffff; --bean: #6b4a35;
+    --great: #1f7a4a; --good: #2f62a8; --okay: #9a6b10; --poor: #b23b33;
+    --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #1b1816; --surface: #252120; --surface-2: #2f2a27; --text: #efe9e4; --muted: #a89c93;
-      --border: #3a3431; --accent: #c98d63; --accent-text: #1b1816;
-      --great: #5cbf85; --good: #7aa7e6; --okay: #e0b453; --poor: #e07a70;
-      --shadow: none;
+      --bg: #141a17; --surface: #1c2420; --sunk: #232d28; --ink: #e6ede8; --muted: #9aaba1; --line: #33413a;
+      --accent: #5cc49b; --accent-ink: #0f1a15; --bean: #c9a184;
+      --great: #6fd39c; --good: #83adec; --okay: #e2b552; --poor: #ef8a80; color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #1b1816; --surface: #252120; --surface-2: #2f2a27; --text: #efe9e4; --muted: #a89c93;
-    --border: #3a3431; --accent: #c98d63; --accent-text: #1b1816;
-    --great: #5cbf85; --good: #7aa7e6; --okay: #e0b453; --poor: #e07a70;
-    --shadow: none;
+    --bg: #141a17; --surface: #1c2420; --sunk: #232d28; --ink: #e6ede8; --muted: #9aaba1; --line: #33413a;
+    --accent: #5cc49b; --accent-ink: #0f1a15; --bean: #c9a184;
+    --great: #6fd39c; --good: #83adec; --okay: #e2b552; --poor: #ef8a80; color-scheme: dark;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
-  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-  h1 { font-size: 24px; margin: 0; }
-  h1 span { color: var(--muted); font-weight: 400; font-size: 15px; display: block; }
-  button, .btn { font: inherit; border: 1px solid var(--border); background: var(--surface); color: var(--text);
-    padding: 8px 14px; border-radius: 8px; cursor: pointer; }
-  button:hover { border-color: var(--accent); }
-  .primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
-  .danger { color: var(--poor); }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: grid; gap: 22px; }
+  h1, h2 { font-family: var(--display); margin: 0; text-wrap: balance; }
+  h1 { font-size: 30px; letter-spacing: -.01em; }
+  h2 { font-size: 18px; }
+  .sub { color: var(--muted); margin: 2px 0 0; }
+  header { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; justify-content: space-between; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button, .btn { font: 500 14px/1 var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    padding: 9px 14px; border-radius: 8px; cursor: pointer; }
+  button:hover, .btn:hover { border-color: var(--accent); }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .ghost { background: transparent; }
+  .danger { color: var(--poor); }
+  .small { padding: 6px 10px; font-size: 13px; }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
 
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; box-shadow: var(--shadow); }
-  .stat b { font-size: 24px; display: block; font-variant-numeric: tabular-nums; }
+  /* Calendar inbox */
+  .cal { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px; }
+  .cal-head { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+  .cal-query { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .cal-query input { width: 180px; }
+  .cal-list { display: grid; gap: 8px; }
+  .cal-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; background: var(--sunk); border-radius: 8px; }
+  .cal-item > div { min-width: 0; }
+  .cal-item b { font-weight: 600; }
+  .cal-note { color: var(--muted); font-size: 14px; margin: 0; }
+  .stamp { color: var(--muted); font-size: 12px; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .stat { border-top: 3px solid var(--line); padding-top: 8px; }
+  .stat b { font: 700 26px/1.1 var(--display); display: block; font-variant-numeric: tabular-nums; }
   .stat small { color: var(--muted); }
+  .stat.warn { border-top-color: var(--poor); }
 
-  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-  input, select, textarea { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border);
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+  input, select, textarea { font: 15px/1.4 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
     border-radius: 8px; padding: 8px 10px; width: 100%; }
-  textarea { resize: vertical; min-height: 90px; }
+  textarea { resize: vertical; }
   .filters input { flex: 1 1 220px; width: auto; }
-  .filters select { flex: 0 1 170px; width: auto; }
+  .filters select { flex: 0 1 180px; width: auto; }
 
-  .list { display: grid; gap: 10px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
-  .card-head { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 14px 16px; cursor: pointer; }
-  .name { font-weight: 600; font-size: 16px; }
+  .list { display: grid; gap: 8px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .card-head { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 14px 16px; cursor: pointer;
+    background: none; border: 0; border-radius: 0; text-align: left; font: inherit; color: inherit; }
+  .card-head > div { min-width: 0; }
+  .name { font: 600 17px/1.3 var(--display); }
   .meta { color: var(--muted); font-size: 13px; }
   .badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start; }
-  .badge { font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+  .badge { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
   .r-Great { color: var(--great); } .r-Good { color: var(--good); } .r-Okay { color: var(--okay); } .r-Poor { color: var(--poor); }
-  .due { color: var(--poor); } .done { color: var(--great); } .tag { color: var(--muted); }
-  .card-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); background: var(--surface-2); }
-  .card.open .card-body { display: block; }
-  .card-body h4 { margin: 14px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
-  .card-body p { margin: 0; white-space: pre-wrap; }
+  .b-due { color: var(--poor); } .b-done { color: var(--great); } .b-muted { color: var(--muted); border-style: dashed; } .b-cal { color: var(--bean); }
+  .card-body { padding: 4px 16px 16px; border-top: 1px solid var(--line); background: var(--sunk); display: grid; gap: 10px; }
+  .card-body section { display: grid; gap: 2px; }
+  .card-body p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
   .card-body a { color: var(--accent); }
-  .empty { text-align: center; color: var(--muted); padding: 48px 16px; border: 1px dashed var(--border); border-radius: 12px; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 16px; border: 1px dashed var(--line); border-radius: 12px; }
+  .status { font-size: 13px; color: var(--muted); }
 
-  dialog { border: none; border-radius: 14px; padding: 0; width: min(720px, calc(100vw - 32px));
-    background: var(--surface); color: var(--text); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
-  dialog::backdrop { background: rgba(0,0,0,.45); }
-  form { padding: 20px; }
-  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  dialog { border: 1px solid var(--line); border-radius: 14px; padding: 0; width: min(720px, calc(100vw - 32px));
+    background: var(--surface); color: var(--ink); }
+  dialog::backdrop { background: rgba(10, 20, 15, .5); }
+  form { padding: 20px; display: grid; gap: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .full { grid-column: 1 / -1; }
-  label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
-  label.check { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 14px; }
+  label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 500; }
+  label.check { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; }
   label.check input { width: auto; }
-  .form-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } .card-head { grid-template-columns: 1fr; } .badges { justify-content: flex-start; } }
+  .form-foot { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  @media (max-width: 620px) {
+    .grid { grid-template-columns: 1fr; }
+    .card-head, .cal-item { grid-template-columns: 1fr; }
+    .badges { justify-content: flex-start; }
+  }
+  @media (prefers-reduced-motion: no-preference) { button { transition: border-color .15s; } }
 </style>
-</head>
-<body>
+
 <div class="wrap">
   <header>
-    <h1>☕ Coffee Chat Tracker <span>Every conversation, its notes, and what comes next.</span></h1>
+    <div>
+      <h1>Coffee Chat Tracker</h1>
+      <p class="sub">Who you met, what you learned, and what you owe them next.</p>
+    </div>
     <div class="row">
-      <button id="exportCsv">Export CSV</button>
-      <button id="exportJson">Backup</button>
-      <label class="btn" style="display:inline-block">Restore<input id="importJson" type="file" accept="application/json" hidden></label>
-      <button class="primary" id="addBtn">+ New chat</button>
+      <button id="exportCsv" class="ghost">Export CSV</button>
+      <button id="exportJson" class="ghost">Back up</button>
+      <label class="btn ghost" for="importJson">Restore</label>
+      <input id="importJson" type="file" accept="application/json" hidden>
+      <button class="primary" id="addBtn">New chat</button>
     </div>
   </header>
 
-  <section class="stats" id="stats"></section>
+  <section class="cal" id="cal" aria-labelledby="calTitle">
+    <div class="cal-head">
+      <div>
+        <h2 id="calTitle">From your Google Calendar</h2>
+        <p class="cal-note" id="calNote">Looking for coffee chats on your calendar…</p>
+      </div>
+      <div class="cal-query">
+        <label for="calQuery" class="label">Search for</label>
+        <input id="calQuery" value="coffee chat">
+        <button id="calRefresh" class="small">Refresh</button>
+        <button id="calAddAll" class="small primary" hidden>Add all</button>
+      </div>
+    </div>
+    <div class="cal-list" id="calList"></div>
+  </section>
 
-  <section class="filters">
-    <input id="q" type="search" placeholder="Search name, company, notes, tags…">
-    <select id="fRating"><option value="">All ratings</option></select>
-    <select id="fStatus">
+  <section class="stats" id="stats" aria-label="Summary"></section>
+
+  <section class="filters" aria-label="Filters">
+    <input id="q" type="search" placeholder="Search name, company, notes, tags" aria-label="Search">
+    <select id="fRating" aria-label="Rating"><option value="">All ratings</option></select>
+    <select id="fStatus" aria-label="Status">
       <option value="">All statuses</option>
       <option value="upcoming">Upcoming</option>
       <option value="followup">Follow-up pending</option>
       <option value="overdue">Follow-up overdue</option>
       <option value="thanks">Thank-you not sent</option>
     </select>
-    <select id="sort">
+    <select id="sort" aria-label="Sort">
       <option value="date-desc">Newest first</option>
       <option value="date-asc">Oldest first</option>
       <option value="rating">Best rated</option>
@@ -112,34 +153,35 @@
     </select>
   </section>
 
+  <p class="status" id="storeStatus"></p>
   <section class="list" id="list"></section>
 </div>
 
 <dialog id="dlg">
-  <form id="form" method="dialog">
-    <h2 id="formTitle" style="margin-top:0">New coffee chat</h2>
+  <form id="form">
+    <h2 id="formTitle">New coffee chat</h2>
     <div class="grid">
-      <label>Name *<input name="name" required></label>
-      <label>Company *<input name="company" required></label>
-      <label>Role / title<input name="role" placeholder="e.g. VP, Investment Banking"></label>
-      <label>Date<input name="date" type="date"></label>
+      <label>Name *<input id="f-name" name="name" required></label>
+      <label>Company *<input id="f-company" name="company" required></label>
+      <label>Role / title<input id="f-role" name="role" placeholder="e.g. Associate, Equity Research"></label>
+      <label>Date<input id="f-date" name="date" type="date"></label>
       <label>How did it go?
-        <select name="rating"></select>
+        <select id="f-rating" name="rating"></select>
       </label>
       <label>Format
-        <select name="format"><option>Video call</option><option>Phone</option><option>In person</option></select>
+        <select id="f-format" name="format"><option>Video call</option><option>Phone</option><option>In person</option></select>
       </label>
-      <label>How we connected<input name="source" placeholder="Alumni, LinkedIn, referral from…"></label>
-      <label>Email<input name="email" type="email"></label>
-      <label class="full">LinkedIn URL<input name="linkedin" type="url" placeholder="https://linkedin.com/in/…"></label>
-      <label class="full">Call notes<textarea name="notes" rows="6" placeholder="What did you talk about?"></textarea></label>
-      <label class="full">Key takeaways / advice<textarea name="takeaways" rows="3"></textarea></label>
-      <label class="full">Referrals / people they suggested<input name="referrals" placeholder="Names to reach out to next"></label>
-      <label>Next step<input name="nextStep" placeholder="Send resume, follow up in 2 weeks…"></label>
-      <label>Follow-up by<input name="followUpDate" type="date"></label>
-      <label class="check"><input type="checkbox" name="thankYouSent"> Thank-you note sent</label>
-      <label class="check"><input type="checkbox" name="followUpDone"> Follow-up done</label>
-      <label class="full">Tags (comma separated)<input name="tags" placeholder="banking, alumni, NYC"></label>
+      <label>How you connected<input id="f-source" name="source" placeholder="Alumni network, LinkedIn, referral from…"></label>
+      <label>Email<input id="f-email" name="email" type="email"></label>
+      <label class="full">LinkedIn URL<input id="f-linkedin" name="linkedin" type="url" placeholder="https://linkedin.com/in/…"></label>
+      <label class="full">Call notes<textarea id="f-notes" name="notes" rows="6" placeholder="What you talked about"></textarea></label>
+      <label class="full">Key takeaways and advice<textarea id="f-takeaways" name="takeaways" rows="3"></textarea></label>
+      <label class="full">People they suggested you meet<input id="f-referrals" name="referrals" placeholder="Names to reach out to next"></label>
+      <label>Next step<input id="f-nextStep" name="nextStep" placeholder="Send resume, check in after earnings…"></label>
+      <label>Follow up by<input id="f-followUpDate" name="followUpDate" type="date"></label>
+      <label class="check"><input id="f-thankYouSent" type="checkbox" name="thankYouSent"> Thank-you note sent</label>
+      <label class="check"><input id="f-followUpDone" type="checkbox" name="followUpDone"> Follow-up done</label>
+      <label class="full">Tags, comma separated<input id="f-tags" name="tags" placeholder="banking, alumni, NYC"></label>
     </div>
     <div class="form-foot">
       <button type="button" class="danger" id="delBtn">Delete</button>
@@ -152,153 +194,324 @@
 </dialog>
 
 <script>
-const KEY = "coffeeChats.v1";
+const LOCAL_KEY = "coffeeChats.v1";
+const CAL_SERVER = "Google Calendar";
 const RATINGS = ["Great", "Good", "Okay", "Poor"];
-const RATING_LABEL = { Great: "🔥 Great — strong connection", Good: "👍 Good", Okay: "😐 Okay", Poor: "👎 Poor" };
+const RATING_LABEL = { Great: "Great: strong connection", Good: "Good", Okay: "Okay", Poor: "Poor" };
+const FIELDS = ["name","company","role","date","rating","format","source","email","linkedin","notes","takeaways",
+  "referrals","nextStep","followUpDate","thankYouSent","followUpDone","tags","calendarEventId","calendarLink"];
 const $ = s => document.querySelector(s);
-const today = () => new Date().toISOString().slice(0, 10);
+const pad = n => String(n).padStart(2, "0");
+const localDay = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => localDay(new Date());
 
-let chats = load();
+let chats = [];
+let dismissed = [];
+let calEvents = null;
 let editingId = null;
+let deleteArmed = false;
 const openIds = new Set();
 
-function load() {
-  try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
-}
-function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(chats)); } catch {}
-}
-function esc(s) {
-  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-function fmtDate(d) {
-  return d ? new Date(d + "T00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "No date";
-}
+/* ---------- storage: artifact db when available, browser storage otherwise ---------- */
+const store = {
+  db: null,
+  readOnly: false,
+  async init() {
+    this.db = window.claude?.use ? await window.claude.use("db").catch(() => null) : null;
+    if (!this.db) {
+      try { const saved = JSON.parse(localStorage.getItem(LOCAL_KEY)); chats = saved?.chats || saved || []; dismissed = saved?.dismissed || []; } catch {}
+      $("#storeStatus").textContent = "Saved in this browser only. Use Back up to keep a copy.";
+      render(); return;
+    }
+    this.db.collection("chats").onSnapshot(snap => {
+      chats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      render();
+    }, () => { $("#storeStatus").textContent = "Lost the connection to your saved chats. Reload the page."; });
+    this.db.doc("settings/calendar").onSnapshot(snap => {
+      dismissed = snap.exists ? (snap.data().dismissed || []) : [];
+      renderCalendar();
+    });
+  },
+  localSave() { try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ chats, dismissed })); } catch {} },
+  async put(chat) {
+    if (!this.db) { const i = chats.findIndex(c => c.id === chat.id); i >= 0 ? chats[i] = chat : chats.push(chat); this.localSave(); render(); return; }
+    const { id, ...body } = chat;
+    try { await this.db.collection("chats").doc(id).set(body); } catch (e) { this.fail(e); }
+  },
+  async remove(id) {
+    if (!this.db) { chats = chats.filter(c => c.id !== id); this.localSave(); render(); return; }
+    try { await this.db.collection("chats").doc(id).delete(); } catch (e) { this.fail(e); }
+  },
+  async setDismissed(list) {
+    dismissed = list;
+    if (!this.db) { this.localSave(); renderCalendar(); return; }
+    try { await this.db.doc("settings/calendar").set({ dismissed: list }); } catch (e) { this.fail(e); }
+  },
+  fail(e) {
+    $("#storeStatus").textContent = e?.code === "invalid_argument"
+      ? "You can view these chats but not change them."
+      : e?.code === "quota_exceeded" ? "Storage is full. Delete a few old chats to add new ones."
+      : "That change didn't save. Check your connection and try again.";
+  },
+};
+
+/* ---------- helpers ---------- */
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function fmtDate(d) { return d ? new Date(d + "T00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "No date"; }
 function tagsOf(c) { return (c.tags || "").split(",").map(t => t.trim()).filter(Boolean); }
+function isUpcoming(c) { return c.date && c.date > today(); }
 function isOverdue(c) { return c.followUpDate && !c.followUpDone && c.followUpDate < today(); }
 function isPendingFollowUp(c) { return (c.nextStep || c.followUpDate) && !c.followUpDone; }
+function needsThanks(c) { return !c.thankYouSent && !isUpcoming(c); }
+function newId() { return (crypto.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9_-]/g, ""); }
 
-// Populate rating dropdowns
 for (const r of RATINGS) {
   $("#fRating").insertAdjacentHTML("beforeend", `<option value="${r}">${r}</option>`);
-  $("#form").rating.insertAdjacentHTML("beforeend", `<option value="${r}">${RATING_LABEL[r]}</option>`);
+  $("#f-rating").insertAdjacentHTML("beforeend", `<option value="${r}">${RATING_LABEL[r]}</option>`);
 }
-$("#form").rating.insertAdjacentHTML("afterbegin", `<option value="">Not rated yet</option>`);
+$("#f-rating").insertAdjacentHTML("afterbegin", `<option value="">Not rated yet</option>`);
 
+/* ---------- render ---------- */
 function renderStats() {
-  const now = new Date();
-  const thisMonth = chats.filter(c => c.date && new Date(c.date + "T00:00").getMonth() === now.getMonth()
-    && new Date(c.date + "T00:00").getFullYear() === now.getFullYear()).length;
-  const companies = new Set(chats.map(c => c.company.trim().toLowerCase())).size;
-  const pending = chats.filter(isPendingFollowUp).length;
+  const now = new Date(), ym = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
   const overdue = chats.filter(isOverdue).length;
-  const great = chats.filter(c => c.rating === "Great").length;
-  $("#stats").innerHTML = [
-    [chats.length, "Total chats"], [thisMonth, "This month"], [companies, "Companies"],
-    [great, "Great chats"], [pending, `Follow-ups pending${overdue ? ` · ${overdue} overdue` : ""}`],
-  ].map(([n, l]) => `<div class="stat"><b>${n}</b><small>${l}</small></div>`).join("");
+  const items = [
+    [chats.length, "Total chats"],
+    [chats.filter(c => (c.date || "").startsWith(ym)).length, "This month"],
+    [new Set(chats.map(c => (c.company || "").trim().toLowerCase()).filter(Boolean)).size, "Companies"],
+    [chats.filter(c => c.rating === "Great").length, "Rated Great"],
+    [chats.filter(isPendingFollowUp).length, overdue ? `Follow-ups pending, ${overdue} overdue` : "Follow-ups pending", overdue],
+    [chats.filter(needsThanks).length, "Thank-yous to send"],
+  ];
+  $("#stats").innerHTML = items.map(([n, l, warn]) => `<div class="stat${warn ? " warn" : ""}"><b>${n}</b><small>${l}</small></div>`).join("");
 }
 
 function filtered() {
   const q = $("#q").value.trim().toLowerCase();
   const fr = $("#fRating").value, fs = $("#fStatus").value, sort = $("#sort").value;
-  let out = chats.filter(c => {
+  const out = chats.filter(c => {
     if (fr && c.rating !== fr) return false;
-    if (fs === "upcoming" && !(c.date && c.date > today())) return false;
+    if (fs === "upcoming" && !isUpcoming(c)) return false;
     if (fs === "followup" && !isPendingFollowUp(c)) return false;
     if (fs === "overdue" && !isOverdue(c)) return false;
-    if (fs === "thanks" && (c.thankYouSent || (c.date && c.date > today()))) return false;
-    if (q) {
-      const hay = [c.name, c.company, c.role, c.notes, c.takeaways, c.tags, c.referrals, c.source].join(" ").toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
+    if (fs === "thanks" && !needsThanks(c)) return false;
+    if (q && ![c.name, c.company, c.role, c.notes, c.takeaways, c.tags, c.referrals, c.source].join(" ").toLowerCase().includes(q)) return false;
     return true;
   });
   const rank = r => r ? RATINGS.indexOf(r) : 99;
-  out.sort({
+  return out.sort({
     "date-desc": (a, b) => (b.date || "").localeCompare(a.date || ""),
     "date-asc": (a, b) => (a.date || "").localeCompare(b.date || ""),
     "rating": (a, b) => rank(a.rating) - rank(b.rating),
-    "company": (a, b) => a.company.localeCompare(b.company),
+    "company": (a, b) => (a.company || "").localeCompare(b.company || ""),
   }[sort]);
-  return out;
 }
 
 function renderList() {
-  const rows = filtered();
   if (!chats.length) {
-    $("#list").innerHTML = `<div class="empty">No coffee chats yet. Click <b>+ New chat</b> to log your first one.</div>`;
+    $("#list").innerHTML = `<div class="empty">No coffee chats logged yet. Add one from your calendar above, or choose <b>New chat</b>.</div>`;
     return;
   }
+  const rows = filtered();
   if (!rows.length) { $("#list").innerHTML = `<div class="empty">No chats match these filters.</div>`; return; }
   $("#list").innerHTML = rows.map(c => {
     const badges = [
       c.rating && `<span class="badge r-${c.rating}">${c.rating}</span>`,
-      c.date && c.date > today() && `<span class="badge good r-Good">Upcoming</span>`,
-      isOverdue(c) && `<span class="badge due">Follow-up overdue</span>`,
-      !isOverdue(c) && isPendingFollowUp(c) && `<span class="badge r-Okay">Follow-up${c.followUpDate ? " " + fmtDate(c.followUpDate) : ""}</span>`,
-      c.followUpDone && `<span class="badge done">Followed up</span>`,
-      !c.thankYouSent && !(c.date && c.date > today()) && `<span class="badge tag">No thank-you yet</span>`,
-      ...tagsOf(c).map(t => `<span class="badge tag">#${esc(t)}</span>`),
+      isUpcoming(c) && `<span class="badge r-Good">Upcoming</span>`,
+      isOverdue(c) && `<span class="badge b-due">Follow-up overdue</span>`,
+      !isOverdue(c) && isPendingFollowUp(c) && `<span class="badge r-Okay">Follow up${c.followUpDate ? " by " + fmtDate(c.followUpDate) : ""}</span>`,
+      c.followUpDone && `<span class="badge b-done">Followed up</span>`,
+      needsThanks(c) && `<span class="badge b-muted">Thank-you not sent</span>`,
+      ...tagsOf(c).map(t => `<span class="badge b-muted">#${esc(t)}</span>`),
     ].filter(Boolean).join("");
-    const section = (title, body) => body ? `<h4>${title}</h4><p>${body}</p>` : "";
-    const contact = [
-      c.email && `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`,
-      c.linkedin && /^https?:\/\//i.test(c.linkedin) && `<a href="${esc(c.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>`,
+    const section = (title, body) => body ? `<section><span class="label">${title}</span><p>${body}</p></section>` : "";
+    const safeUrl = u => /^https:\/\//i.test(u || "") ? esc(u) : "";
+    const links = [
+      safeUrl(c.linkedin) && `<a href="${safeUrl(c.linkedin)}" target="_blank" rel="noopener">LinkedIn profile</a>`,
+      safeUrl(c.calendarLink) && `<a href="${safeUrl(c.calendarLink)}" target="_blank" rel="noopener">Open in Google Calendar</a>`,
     ].filter(Boolean).join(" · ");
-    return `<article class="card ${openIds.has(c.id) ? "open" : ""}" data-id="${c.id}">
-      <div class="card-head" data-toggle>
+    const open = openIds.has(c.id);
+    return `<article class="card" data-id="${esc(c.id)}">
+      <button class="card-head" data-toggle aria-expanded="${open}">
         <div>
           <div class="name">${esc(c.name)}</div>
-          <div class="meta">${esc(c.role ? c.role + " · " : "")}${esc(c.company)} · ${fmtDate(c.date)} · ${esc(c.format || "")}</div>
+          <div class="meta">${esc(c.role ? c.role + " · " : "")}${esc(c.company)} · ${fmtDate(c.date)}${c.format ? " · " + esc(c.format) : ""}</div>
         </div>
         <div class="badges">${badges}</div>
-      </div>
-      <div class="card-body">
+      </button>
+      <div class="card-body" ${open ? "" : "hidden"}>
         ${section("Notes", esc(c.notes) || "<i>No notes yet.</i>")}
         ${section("Key takeaways", esc(c.takeaways))}
-        ${section("Referrals", esc(c.referrals))}
+        ${section("People they suggested", esc(c.referrals))}
         ${section("Next step", esc(c.nextStep))}
-        ${section("How we connected", esc(c.source))}
-        ${section("Contact", contact)}
-        <div class="row" style="margin-top:14px">
-          <button data-edit>Edit</button>
-          <button data-quick="thankYouSent">${c.thankYouSent ? "✓ Thank-you sent" : "Mark thank-you sent"}</button>
-          <button data-quick="followUpDone">${c.followUpDone ? "✓ Followed up" : "Mark follow-up done"}</button>
-          <button data-copy>Copy notes</button>
+        ${section("How you connected", esc(c.source))}
+        ${section("Email", esc(c.email))}
+        ${links ? `<section><p>${links}</p></section>` : ""}
+        <div class="row">
+          <button class="small" data-edit>Edit</button>
+          <button class="small" data-quick="thankYouSent">${c.thankYouSent ? "Thank-you sent ✓" : "Mark thank-you sent"}</button>
+          <button class="small" data-quick="followUpDone">${c.followUpDone ? "Followed up ✓" : "Mark follow-up done"}</button>
+          <button class="small" data-copy>Copy notes</button>
         </div>
       </div>
     </article>`;
   }).join("");
 }
 
-function render() { renderStats(); renderList(); }
+function render() { renderStats(); renderList(); renderCalendar(); }
 
-$("#list").addEventListener("click", e => {
+/* ---------- Google Calendar ---------- */
+let mcp = null, unwatch = null;
+
+function guessName(summary) {
+  const cleaned = (summary || "").replace(/\b(coffee|chat|call|catch[- ]?up|with|w\/|meeting|intro)\b/gi, " ")
+    .replace(/[-–—:|/()@<>+&,]/g, " ").replace(/\s+/g, " ").trim();
+  return cleaned.replace(/\b\w/g, ch => ch.toUpperCase()) || (summary || "").trim();
+}
+function eventDay(ev) {
+  if (ev.start?.date) return ev.start.date;
+  return ev.start?.dateTime ? localDay(new Date(ev.start.dateTime)) : "";
+}
+function eventGuest(ev) {
+  return (ev.attendees || []).find(a => !a.self && !a.resource) || null;
+}
+function chatFromEvent(ev) {
+  const guest = eventGuest(ev);
+  return {
+    name: guest?.displayName || guessName(ev.summary), company: "", date: eventDay(ev),
+    format: ev.location && !/zoom|meet|teams|http/i.test(ev.location) ? "In person" : "Video call",
+    email: guest?.email || "", notes: ev.description ? String(ev.description).replace(/<[^>]+>/g, " ").trim() : "",
+    calendarEventId: ev.id, calendarLink: ev.htmlLink || "",
+  };
+}
+function pendingEvents() {
+  if (!calEvents) return [];
+  const tracked = new Set(chats.map(c => c.calendarEventId).filter(Boolean));
+  return calEvents.filter(ev => ev.id && ev.status !== "cancelled" && !tracked.has(ev.id) && !dismissed.includes(ev.id))
+    .sort((a, b) => eventDay(b).localeCompare(eventDay(a)));
+}
+
+function setCalNote(text) { $("#calNote").textContent = text; }
+
+function renderCalendar() {
+  if (!mcp) return;
+  const list = pendingEvents();
+  $("#calAddAll").hidden = list.length < 2;
+  if (!calEvents) return;
+  if (!list.length) {
+    $("#calList").innerHTML = "";
+    setCalNote(calEvents.length ? "You're caught up. Every matching calendar event is in your tracker." : `No events on your calendar match "${$("#calQuery").value}".`);
+    return;
+  }
+  setCalNote(`${list.length} calendar event${list.length > 1 ? "s" : ""} not in your tracker yet.`);
+  $("#calList").innerHTML = list.map(ev => {
+    const day = eventDay(ev), guest = eventGuest(ev);
+    return `<div class="cal-item" data-ev="${esc(ev.id)}">
+      <div><b>${esc(ev.summary || "Untitled event")}</b>
+        <div class="meta">${fmtDate(day)}${day > today() ? " · upcoming" : ""}${guest ? " · " + esc(guest.displayName || guest.email) : ""}</div></div>
+      <div class="row"><button class="small primary" data-cal-add>Add to tracker</button><button class="small ghost" data-cal-skip>Not a coffee chat</button></div>
+    </div>`;
+  }).join("");
+}
+
+function handleCalError(err) {
+  calEvents = null; $("#calList").innerHTML = ""; $("#calAddAll").hidden = true;
+  const msg = {
+    needs_reauth: "Your Google Calendar connection expired. Reconnect it in claude.ai Settings → Connectors, then choose Refresh.",
+    server_not_connected: "Google Calendar isn't connected. Add it in claude.ai Settings → Connectors, then choose Refresh.",
+    selection_required: "You have more than one Google Calendar connector. Pick one when Claude asks, then choose Refresh.",
+    not_in_manifest: "Calendar access is turned off for this page. Turn it on from the page's Permissions menu.",
+    approval_required: "Choose Refresh to allow this page to read your calendar.",
+    blocked_by_policy: "Your organization doesn't allow this page to read Google Calendar.",
+    server_unavailable: "Google Calendar didn't respond. Choose Refresh to try again.",
+    tool_error: `Google Calendar couldn't run that search: ${err.message || "unknown error"}`,
+  }[err?.code] || "Couldn't reach Google Calendar. Choose Refresh to try again.";
+  setCalNote(msg);
+}
+
+function onCalResult(result) {
+  const p = result?.payload;
+  calEvents = Array.isArray(p?.events) ? p.events : [];
+  render();
+}
+
+function watchCalendar() {
+  if (!mcp) return;
+  unwatch?.();
+  const query = $("#calQuery").value.trim() || "coffee chat";
+  unwatch = mcp.watchTool(CAL_SERVER, "search_events", { query, pageSize: 50 }, ev => {
+    if (ev.type === "data") onCalResult(ev.result); else handleCalError(ev.error);
+  }, { refetchInterval: 10 * 60 * 1000 });
+}
+
+async function initCalendar() {
+  mcp = window.claude?.use ? await window.claude.use("mcp").catch(() => null) : null;
+  if (!mcp) {
+    setCalNote("Calendar import works when you open this tracker on claude.ai.");
+    $("#calRefresh").hidden = true; $("#calQuery").disabled = true;
+    return;
+  }
+  try { const q = localStorage.getItem(LOCAL_KEY + ".query"); if (q) $("#calQuery").value = q; } catch {}
+  watchCalendar();
+}
+
+$("#calRefresh").onclick = async () => {
+  if (!mcp) return;
+  try { localStorage.setItem(LOCAL_KEY + ".query", $("#calQuery").value.trim()); } catch {}
+  setCalNote("Checking your calendar…");
+  const query = $("#calQuery").value.trim() || "coffee chat";
+  try {
+    const result = await mcp.callTool(CAL_SERVER, "search_events", { query, pageSize: 50 }, { cache: { refresh: true } });
+    onCalResult(result);
+    watchCalendar();
+  } catch (err) { handleCalError(err); }
+};
+$("#calQuery").addEventListener("keydown", e => { if (e.key === "Enter") $("#calRefresh").click(); });
+
+$("#calList").addEventListener("click", e => {
+  const item = e.target.closest("[data-ev]"); if (!item) return;
+  const ev = calEvents.find(x => x.id === item.dataset.ev); if (!ev) return;
+  if (e.target.closest("[data-cal-add]")) openForm(null, chatFromEvent(ev));
+  else if (e.target.closest("[data-cal-skip]")) store.setDismissed([...dismissed, ev.id]);
+});
+$("#calAddAll").onclick = async () => {
+  for (const ev of pendingEvents()) {
+    const c = chatFromEvent(ev);
+    await store.put({ id: newId(), createdAt: Date.now(), ...c, company: c.company || "Unknown" });
+  }
+};
+
+/* ---------- list interactions ---------- */
+$("#list").addEventListener("click", async e => {
   const card = e.target.closest(".card"); if (!card) return;
-  const c = chats.find(x => x.id === card.dataset.id);
+  const c = chats.find(x => x.id === card.dataset.id); if (!c) return;
   if (e.target.closest("[data-toggle]")) {
     openIds.has(c.id) ? openIds.delete(c.id) : openIds.add(c.id);
-    card.classList.toggle("open");
+    renderList();
   } else if (e.target.closest("[data-edit]")) openForm(c);
   else if (e.target.closest("[data-quick]")) {
     const k = e.target.closest("[data-quick]").dataset.quick;
-    c[k] = !c[k]; save(); render();
+    await store.put({ ...c, [k]: !c[k] });
   } else if (e.target.closest("[data-copy]")) {
-    const text = `${c.name} — ${c.company} (${fmtDate(c.date)})\n\n${c.notes || ""}${c.takeaways ? "\n\nTakeaways:\n" + c.takeaways : ""}`;
-    navigator.clipboard?.writeText(text).then(() => {
-      const b = e.target.closest("[data-copy]"); b.textContent = "Copied!"; setTimeout(() => b.textContent = "Copy notes", 1200);
-    });
+    const b = e.target.closest("[data-copy]");
+    const text = `${c.name} (${c.company}), ${fmtDate(c.date)}\n\n${c.notes || ""}${c.takeaways ? "\n\nTakeaways:\n" + c.takeaways : ""}`;
+    try { await navigator.clipboard.writeText(text); b.textContent = "Copied"; }
+    catch { b.textContent = "Couldn't copy"; }
+    setTimeout(() => b.textContent = "Copy notes", 1400);
   }
 });
 
+/* ---------- form ---------- */
 const form = $("#form");
-function openForm(c) {
+function openForm(c, prefill) {
   editingId = c?.id || null;
+  deleteArmed = false; $("#delBtn").textContent = "Delete";
   form.reset();
-  $("#formTitle").textContent = c ? `Edit chat with ${c.name}` : "New coffee chat";
-  $("#delBtn").style.visibility = c ? "visible" : "hidden";
-  const data = c || { date: today(), format: "Video call" };
+  $("#formTitle").textContent = c ? `Edit chat with ${c.name}` : prefill ? "Add chat from calendar" : "New coffee chat";
+  $("#delBtn").hidden = !c;
+  const data = c || { date: today(), format: "Video call", ...prefill };
+  form.dataset.calendarEventId = data.calendarEventId || "";
+  form.dataset.calendarLink = data.calendarLink || "";
   for (const el of form.elements) {
     if (!el.name) continue;
     if (el.type === "checkbox") el.checked = !!data[el.name];
@@ -306,50 +519,65 @@ function openForm(c) {
   }
   $("#dlg").showModal();
 }
-form.addEventListener("submit", e => {
+form.addEventListener("submit", async e => {
   e.preventDefault();
-  const data = {};
+  const data = { calendarEventId: form.dataset.calendarEventId || "", calendarLink: form.dataset.calendarLink || "" };
   for (const el of form.elements) {
     if (!el.name) continue;
     data[el.name] = el.type === "checkbox" ? el.checked : el.value.trim();
   }
-  if (editingId) Object.assign(chats.find(c => c.id === editingId), data);
-  else { const id = crypto.randomUUID(); chats.push({ id, createdAt: Date.now(), ...data }); openIds.add(id); }
-  save(); render(); $("#dlg").close();
+  const existing = chats.find(c => c.id === editingId);
+  const chat = existing ? { ...existing, ...data } : { id: newId(), createdAt: Date.now(), ...data };
+  if (!existing) openIds.add(chat.id);
+  $("#dlg").close();
+  await store.put(chat);
 });
 $("#cancelBtn").onclick = () => $("#dlg").close();
-$("#delBtn").onclick = () => {
-  const c = chats.find(x => x.id === editingId);
-  if (c && confirm(`Delete your chat with ${c.name}?`)) {
-    chats = chats.filter(x => x.id !== editingId); save(); render(); $("#dlg").close();
-  }
+$("#delBtn").onclick = async () => {
+  if (!deleteArmed) { deleteArmed = true; $("#delBtn").textContent = "Click again to delete"; return; }
+  const id = editingId; $("#dlg").close(); await store.remove(id);
 };
 $("#addBtn").onclick = () => openForm(null);
 for (const id of ["#q", "#fRating", "#fStatus", "#sort"]) $(id).addEventListener("input", renderList);
 
-function download(name, text, type) {
+/* ---------- export / backup ---------- */
+let downloads = null;
+async function saveFile(filename, text, type) {
+  if (downloads) {
+    try { await downloads.save({ filename, data: new Blob([text], { type }) }); } catch {}
+    return;
+  }
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([text], { type }));
-  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+  a.href = URL.createObjectURL(new Blob([text], { type })); a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
-$("#exportJson").onclick = () => download(`coffee-chats-${today()}.json`, JSON.stringify(chats, null, 2), "application/json");
+$("#exportJson").onclick = () => saveFile(`coffee-chats-${today()}.json`, JSON.stringify(chats, null, 2), "application/json");
 $("#exportCsv").onclick = () => {
-  const cols = ["date", "name", "company", "role", "rating", "format", "source", "email", "linkedin", "notes",
-    "takeaways", "referrals", "nextStep", "followUpDate", "followUpDone", "thankYouSent", "tags"];
   const cell = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  download(`coffee-chats-${today()}.csv`, [cols.join(","), ...chats.map(c => cols.map(k => cell(c[k])).join(","))].join("\n"), "text/csv");
+  saveFile(`coffee-chats-${today()}.csv`, [FIELDS.join(","), ...chats.map(c => FIELDS.map(k => cell(c[k])).join(","))].join("\n"), "text/csv");
 };
 $("#importJson").onchange = async e => {
-  const file = e.target.files[0]; if (!file) return;
+  const file = e.target.files[0]; e.target.value = ""; if (!file) return;
   try {
     const data = JSON.parse(await file.text());
-    if (!Array.isArray(data)) throw new Error();
-    if (confirm(`Restore ${data.length} chats? This replaces what's currently here.`)) { chats = data; save(); render(); }
-  } catch { alert("That file doesn't look like a Coffee Chat Tracker backup."); }
-  e.target.value = "";
+    const list = Array.isArray(data) ? data : data.chats;
+    if (!Array.isArray(list)) throw new Error();
+    const have = new Set(chats.map(c => c.id));
+    let added = 0;
+    for (const c of list) {
+      if (!c || !c.name) continue;
+      const id = c.id && /^[A-Za-z0-9_-]{1,200}$/.test(c.id) ? c.id : newId();
+      if (have.has(id)) continue;
+      const clean = { createdAt: c.createdAt || Date.now() };
+      for (const k of FIELDS) if (c[k] !== undefined) clean[k] = c[k];
+      await store.put({ id, ...clean }); added++;
+    }
+    $("#storeStatus").textContent = `Restored ${added} chat${added === 1 ? "" : "s"} from your backup.`;
+  } catch { $("#storeStatus").textContent = "That file isn't a Coffee Chat Tracker backup."; }
 };
 
 render();
+store.init();
+initCalendar();
+(window.claude?.use ? window.claude.use("downloads").catch(() => null) : Promise.resolve(null)).then(d => { downloads = d; });
 </script>
-</body>
-</html>
